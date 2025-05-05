@@ -11,7 +11,8 @@ name = "mongosqlwrapper"
 crate-type = ["staticlib"]
 
 [dependencies]
-mongosql = { git = "https://github.com/mongodb/mongosql", branch = "main" }
+mongosql = { git = "https://github.com/mongodb/mongosql", rev = "ef13fdf2" }
+agg-ast = { git = "https://github.com/mongodb/mongosql", rev = "ef13fdf2" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 

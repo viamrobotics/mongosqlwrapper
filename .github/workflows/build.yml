@@ -58,6 +58,17 @@ jobs:
     - name: Download all artifacts
       uses: actions/download-artifact@v4
 
+    - name: List downloaded artifacts
+      run: |
+        echo "Current directory:"
+        pwd
+        echo "Directory contents:"
+        ls -la
+        echo "Artifact directory contents:"
+        ls -la aarch64-apple-darwin-libmongosqlwrapper.a || true
+        ls -la x86_64-apple-darwin-libmongosqlwrapper.a || true
+        ls -la x86_64-unknown-linux-gnu-libmongosqlwrapper.a || true
+
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -75,7 +86,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./aarch64-apple-darwin-libmongosqlwrapper.a
+        asset_path: aarch64-apple-darwin-libmongosqlwrapper.a/libmongosqlwrapper.a
         asset_name: libmongosqlwrapper-aarch64-apple-darwin.a
         asset_content_type: application/octet-stream
 
@@ -85,7 +96,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./x86_64-apple-darwin-libmongosqlwrapper.a
+        asset_path: x86_64-apple-darwin-libmongosqlwrapper.a/libmongosqlwrapper.a
         asset_name: libmongosqlwrapper-x86_64-apple-darwin.a
         asset_content_type: application/octet-stream
 
@@ -95,6 +106,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./x86_64-unknown-linux-gnu-libmongosqlwrapper.a
+        asset_path: x86_64-unknown-linux-gnu-libmongosqlwrapper.a/libmongosqlwrapper.a
         asset_name: libmongosqlwrapper-x86_64-unknown-linux-gnu.a
         asset_content_type: application/octet-stream 

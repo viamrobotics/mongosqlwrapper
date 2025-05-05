@@ -3,9 +3,11 @@ use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
 use mongosql::catalog::Catalog;
-use mongosql::Namespace;
 use mongosql::options::{ExcludeNamespacesOption, SqlOptions};
 use mongosql::{schema::Schema, translate_sql};
+use mongosql::json_schema::Schema as JsonSchema;
+use agg_ast::definitions::Namespace;
+use serde_json::Value;
 
 #[no_mangle]
 pub unsafe extern "C" fn compile_sql_cgo(
@@ -22,20 +24,23 @@ pub unsafe extern "C" fn compile_sql_cgo(
         Err(_) => return std::ptr::null_mut(),
     };
 
-    let json: BTreeMap<String, BTreeMap<String, mongosql::json_schema::Schema>> =
-        match serde_json::from_str(schema_str) {
-            Ok(j) => j,
-            Err(_) => return std::ptr::null_mut(),
-        };
+    let schema_value: Value = match serde_json::from_str(schema_str) {
+        Ok(v) => v,
+        Err(_) => return std::ptr::null_mut(),
+    };
 
     let mut schemas: BTreeMap<Namespace, Schema> = BTreeMap::new();
-    for (db, collections) in json {
-        for (coll, jschema) in collections {
-            let mschema = match Schema::try_from(jschema) {
+    for (db, collections) in schema_value.as_object().unwrap() {
+        for (coll, schema_json) in collections.as_object().unwrap() {
+            let json_schema: JsonSchema = match serde_json::from_value(schema_json.clone()) {
                 Ok(s) => s,
                 Err(_) => return std::ptr::null_mut(),
             };
-            schemas.insert(Namespace { database: db.clone(), collection: coll }, mschema);
+            let mschema = match Schema::try_from(json_schema) {
+                Ok(s) => s,
+                Err(_) => return std::ptr::null_mut(),
+            };
+            schemas.insert(Namespace { database: db.clone(), collection: coll.clone() }, mschema);
         }
     }
 
