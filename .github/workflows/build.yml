@@ -35,7 +35,13 @@ jobs:
         target: ${{ matrix.target }}
         override: true
 
+    - name: Configure Git for private dependencies
+      run: |
+        git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+
     - name: Build
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: cargo build --release --target ${{ matrix.target }}
 
     - name: Upload artifact
