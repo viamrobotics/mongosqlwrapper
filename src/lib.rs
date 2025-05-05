@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
-use mongosql::catalog::{Catalog, Namespace};
+use mongosql::catalog::Catalog;
+use mongosql::agg_ast::definitions::Namespace;
 use mongosql::options::{ExcludeNamespacesOption, SqlOptions};
 use mongosql::{schema::Schema, translate_sql};
 
