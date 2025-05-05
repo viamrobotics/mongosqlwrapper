@@ -2,16 +2,18 @@
 name = "mongosqlwrapper"
 version = "0.1.0"
 edition = "2021"
-description = "A Rust library for converting SQL queries to MongoDB query language (MQL)"
+description = "A Rust library that compiles SQL to MongoDB Query Language (MQL)"
+
 license = "Apache-2.0"
 
 [lib]
 name = "mongosqlwrapper"
-crate-type = ["staticlib", "cdylib"]
+crate-type = ["staticlib"]
 
 [dependencies]
 mongosql = { git = "https://github.com/mongodb/mongosql", branch = "main" }
-serde_json = "1.0" 
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 [profile.release]
 lto = false
