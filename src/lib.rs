@@ -35,7 +35,7 @@ pub unsafe extern "C" fn compile_sql_cgo(
                 Ok(s) => s,
                 Err(_) => return std::ptr::null_mut(),
             };
-            schemas.insert(Namespace { db: db.clone(), collection: coll }, mschema);
+            schemas.insert(Namespace { database: db.clone(), collection: coll }, mschema);
         }
     }
 
