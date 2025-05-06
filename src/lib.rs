@@ -8,12 +8,16 @@ use mongosql::{schema::Schema, translate_sql};
 use mongosql::json_schema::Schema as JsonSchema;
 use agg_ast::definitions::Namespace;
 use serde_json::Value;
+use ffi_helpers::null_pointer_check;
 
 #[no_mangle]
 pub unsafe extern "C" fn compile_sql_cgo(
     sql: *const c_char,
     schema_json: *const c_char,
 ) -> *mut c_char {
+    null_pointer_check!(sql);
+    null_pointer_check!(schema_json);
+
     let sql_str = match CStr::from_ptr(sql).to_str() {
         Ok(s) => s,
         Err(_) => return std::ptr::null_mut(),
