@@ -148,11 +148,17 @@ pub unsafe extern "C" fn free_string(s: *mut c_char) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn free_compile_result(result: CompileResult) {
-    if !result.result.is_null() {
-        drop(CString::from_raw(result.result));
+pub extern "C" fn free_compile_result(result: *mut CompileResult) {
+    if result.is_null() {
+        return;
     }
-    if !result.error.is_null() {
-        drop(CString::from_raw(result.error));
+    unsafe {
+        let result = &mut *result;
+        if !result.result.is_null() {
+            let _ = CString::from_raw(result.result);
+        }
+        if !result.error.is_null() {
+            let _ = CString::from_raw(result.error);
+        }
     }
 }
