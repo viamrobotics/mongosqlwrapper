@@ -1,0 +1,117 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag (e.g., v0.1.0)'
+        required: false
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: libmongosqlwrapper.a
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: libmongosqlwrapper.a
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: libmongosqlwrapper.a
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: ${{ matrix.target }}
+        override: true
+
+    - name: Configure Git for private dependencies
+      run: |
+        git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+
+    - name: Build
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: cargo build --release --target ${{ matrix.target }}
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.target }}-${{ matrix.artifact_name }}
+        path: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+
+  release:
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != ''
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+
+    - name: List downloaded artifacts
+      run: |
+        echo "Current directory:"
+        pwd
+        echo "Directory contents:"
+        ls -la
+        echo "Artifact directory contents:"
+        ls -la aarch64-apple-darwin-libmongosqlwrapper.a || true
+        ls -la x86_64-apple-darwin-libmongosqlwrapper.a || true
+        ls -la x86_64-unknown-linux-gnu-libmongosqlwrapper.a || true
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.event.inputs.release_tag }}
+        release_name: Release ${{ github.event.inputs.release_tag }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: aarch64-apple-darwin-libmongosqlwrapper.a/libmongosqlwrapper.a
+        asset_name: libmongosqlwrapper-aarch64-apple-darwin.a
+        asset_content_type: application/octet-stream
+
+    - name: Upload Release Assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: x86_64-apple-darwin-libmongosqlwrapper.a/libmongosqlwrapper.a
+        asset_name: libmongosqlwrapper-x86_64-apple-darwin.a
+        asset_content_type: application/octet-stream
+
+    - name: Upload Release Assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: x86_64-unknown-linux-gnu-libmongosqlwrapper.a/libmongosqlwrapper.a
+        asset_name: libmongosqlwrapper-x86_64-unknown-linux-gnu.a
+        asset_content_type: application/octet-stream 

@@ -1,0 +1,27 @@
+[package]
+name = "mongosqlwrapper"
+version = "0.1.0"
+edition = "2021"
+description = "A Rust library that compiles SQL to MongoDB Query Language (MQL)"
+
+license = "Apache-2.0"
+
+[lib]
+name = "mongosqlwrapper"
+crate-type = ["staticlib"]
+
+[dependencies]
+mongosql = { git = "https://github.com/mongodb/mongosql", rev = "ef13fdf2" }
+agg-ast = { git = "https://github.com/mongodb/mongosql", rev = "ef13fdf2" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+ffi_helpers = "0.1.0"
+
+[profile.release]
+lto = false
+codegen-units = 1
+opt-level = 3
+panic = "abort"
+strip = true
+debug = false
+incremental = false 
