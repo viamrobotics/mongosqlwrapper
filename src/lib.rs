@@ -35,21 +35,23 @@ impl CompileResult {
 pub unsafe extern "C" fn compile_sql_cgo(
     sql: *const c_char,
     schema_json: *const c_char,
-) -> CompileResult {
-    let mut result = CompileResult::new();
+) -> *mut CompileResult {
+    let mut result = Box::new(CompileResult::new());
 
     if sql.is_null() {
-        return CompileResult::with_error("SQL string is null");
+        result.error = CString::new("SQL string is null").unwrap().into_raw();
+        return Box::into_raw(result);
     }
     if schema_json.is_null() {
-        return CompileResult::with_error("Schema JSON is null");
+        result.error = CString::new("Schema JSON is null").unwrap().into_raw();
+        return Box::into_raw(result);
     }
 
     let sql_str = match CStr::from_ptr(sql).to_str() {
         Ok(s) => s,
         Err(e) => {
             result.error = CString::new(format!("Failed to convert SQL string: {}", e)).unwrap().into_raw();
-            return result;
+            return Box::into_raw(result);
         }
     };
 
@@ -57,7 +59,7 @@ pub unsafe extern "C" fn compile_sql_cgo(
         Ok(s) => s,
         Err(e) => {
             result.error = CString::new(format!("Failed to convert schema string: {}", e)).unwrap().into_raw();
-            return result;
+            return Box::into_raw(result);
         }
     };
 
@@ -65,7 +67,7 @@ pub unsafe extern "C" fn compile_sql_cgo(
         Ok(v) => v,
         Err(e) => {
             result.error = CString::new(format!("Failed to parse schema JSON: {}", e)).unwrap().into_raw();
-            return result;
+            return Box::into_raw(result);
         }
     };
 
@@ -74,7 +76,7 @@ pub unsafe extern "C" fn compile_sql_cgo(
         Some(obj) => obj,
         None => {
             result.error = CString::new("Schema JSON is not an object").unwrap().into_raw();
-            return result;
+            return Box::into_raw(result);
         }
     };
 
@@ -83,7 +85,7 @@ pub unsafe extern "C" fn compile_sql_cgo(
             Some(obj) => obj,
             None => {
                 result.error = CString::new(format!("Collections for database {} is not an object", db)).unwrap().into_raw();
-                return result;
+                return Box::into_raw(result);
             }
         };
 
@@ -92,14 +94,14 @@ pub unsafe extern "C" fn compile_sql_cgo(
                 Ok(s) => s,
                 Err(e) => {
                     result.error = CString::new(format!("Failed to parse schema for {}.{}: {}", db, coll, e)).unwrap().into_raw();
-                    return result;
+                    return Box::into_raw(result);
                 }
             };
             let mschema = match Schema::try_from(json_schema) {
                 Ok(s) => s,
                 Err(e) => {
                     result.error = CString::new(format!("Failed to convert schema for {}.{}: {}", db, coll, e)).unwrap().into_raw();
-                    return result;
+                    return Box::into_raw(result);
                 }
             };
             schemas.insert(Namespace { database: db.clone(), collection: coll.clone() }, mschema);
@@ -116,7 +118,7 @@ pub unsafe extern "C" fn compile_sql_cgo(
         Ok(t) => t,
         Err(e) => {
             result.error = CString::new(format!("Failed to translate SQL: {}", e)).unwrap().into_raw();
-            return result;
+            return Box::into_raw(result);
         }
     };
 
@@ -124,18 +126,18 @@ pub unsafe extern "C" fn compile_sql_cgo(
         Ok(j) => j,
         Err(e) => {
             result.error = CString::new(format!("Failed to serialize pipeline: {}", e)).unwrap().into_raw();
-            return result;
+            return Box::into_raw(result);
         }
     };
 
     match CString::new(pipeline_json) {
         Ok(cstr) => {
             result.result = cstr.into_raw();
-            result
+            Box::into_raw(result)
         }
         Err(e) => {
             result.error = CString::new(format!("Failed to create C string: {}", e)).unwrap().into_raw();
-            result
+            Box::into_raw(result)
         }
     }
 }
@@ -146,3 +148,19 @@ pub unsafe extern "C" fn free_string(s: *mut c_char) {
         drop(CString::from_raw(s));
     }
 }
+#[no_mangle]
+pub extern "C" fn free_compile_result(result: *mut CompileResult) {
+    if result.is_null() {
+        return;
+    }
+    unsafe {
+        let result = &mut *result;
+        if !result.result.is_null() {
+            let _ = CString::from_raw(result.result);
+        }
+        if !result.error.is_null() {
+            let _ = CString::from_raw(result.error);
+        }
+    }
+}
+
