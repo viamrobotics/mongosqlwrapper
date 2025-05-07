@@ -38,11 +38,11 @@ pub unsafe extern "C" fn compile_sql_cgo(
 ) -> CompileResult {
     let mut result = CompileResult::new();
 
-    if let Err(e) = null_pointer_check!(sql) {
-        return CompileResult::with_error(&format!("SQL string is null: {}", e));
+    if sql.is_null() {
+        return CompileResult::with_error("SQL string is null");
     }
-    if let Err(e) = null_pointer_check!(schema_json) {
-        return CompileResult::with_error(&format!("Schema JSON is null: {}", e));
+    if schema_json.is_null() {
+        return CompileResult::with_error("Schema JSON is null");
     }
 
     let sql_str = match CStr::from_ptr(sql).to_str() {

@@ -5,25 +5,21 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-
-env:
-  CARGO_TERM_COLOR: always
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, macos-latest]
         include:
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            artifact_name: libmongosqlwrapper.a
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            artifact_name: libmongosqlwrapper.a
           - os: ubuntu-latest
+            artifact_name: libmongosqlwrapper.so
             target: x86_64-unknown-linux-gnu
-            artifact_name: libmongosqlwrapper.a
+          - os: macos-latest
+            artifact_name: libmongosqlwrapper.dylib
+            target: x86_64-apple-darwin
 
     steps:
     - uses: actions/checkout@v4
@@ -35,20 +31,37 @@ jobs:
         target: ${{ matrix.target }}
         override: true
 
-    - name: Configure Git for private dependencies
-      run: |
-        git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
-
     - name: Build
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: cargo build --release --target ${{ matrix.target }}
+      run: |
+        cargo build --release --target ${{ matrix.target }}
+        echo "Build directory contents:"
+        ls -la target/${{ matrix.target }}/release/
 
-    - name: Upload artifact
+    - name: Create artifacts directory
+      run: mkdir -p artifacts
+
+    - name: Copy library to artifacts
+      run: |
+        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+          cp target/${{ matrix.target }}/release/libmongosqlwrapper.so artifacts/ || {
+            echo "Failed to copy .so file. Directory contents:"
+            ls -la target/${{ matrix.target }}/release/
+            exit 1
+          }
+        else
+          cp target/${{ matrix.target }}/release/libmongosqlwrapper.dylib artifacts/ || {
+            echo "Failed to copy .dylib file. Directory contents:"
+            ls -la target/${{ matrix.target }}/release/
+            exit 1
+          }
+        fi
+
+    - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.target }}-${{ matrix.artifact_name }}
-        path: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+        name: ${{ matrix.artifact_name }}
+        path: artifacts/
+        if-no-files-found: error
 
   release:
     needs: build
