@@ -25,3 +25,6 @@ panic = "abort"
 strip = true
 debug = false
 incremental = false 
+
+[target.aarch64-unknown-linux-gnu]
+linker = "aarch64-linux-gnu-gcc"
