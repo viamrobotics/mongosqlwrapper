@@ -1,6 +1,6 @@
 [package]
 name = "mongosqlwrapper"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "A Rust library that compiles SQL to MongoDB Query Language (MQL)"
 
