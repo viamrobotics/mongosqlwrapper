@@ -18,3 +18,7 @@ Thumbs.db
 *.so
 *.dylib
 *.dll 
+
+# Claude Code
+.claude/worktrees
+.claude/settings.local.json
